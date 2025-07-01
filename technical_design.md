@@ -35,13 +35,13 @@ A lightweight web‑based Kanban board that **anyone** can create and share by U
 
 | Layer         | Choice                                    | Rationale                                        |
 | ------------- | ----------------------------------------- | ------------------------------------------------ |
-| Front‑end     | React 18 + Vite + TypeScript              | Familiar ecosystem, fast HMR.                    |
-| Styling       | Tailwind CSS                              | Utility‑first → rapid UI, minimal CSS debt.      |
-| State Mgmt    | Zustand                                   | 1 KB, no boilerplate; ideal for board store.     |
+| Front‑end     | React 18 + Vite + TypeScript              | Familiar ecosystem, fast HMR.                    |
+| Styling       | Tailwind CSS                              | Utility‑first → rapid UI, minimal CSS debt.      |
+| State Mgmt    | Zustand                                   | 1 KB, no boilerplate; ideal for board store.     |
 | Drag‑and‑Drop | Dnd‑Kit                                   | Accessible, keyboard‑friendly.                   |
 | Back‑end      | Fastify (TypeScript)                      | Faster than Express, built‑in schema validation. |
 | DB            | SQLite (file) via Prisma ORM              | Zero‑config dev; can swap to Postgres later.     |
-| ID generator  | `nanoid` (size = 21)                      | 128‑bit entropy, URL‑safe.                       |
+| ID generator  | `nanoid` (size = 21)                      | 128‑bit entropy, URL‑safe.                       |
 | Testing       | Vitest, React Testing Library, Playwright | Unified Jest‑style API, fast runs.               |
 | Lint/Format   | ESLint (typescript‑eslint), Prettier      | Consistent code style.                           |
 | CI/CD         | GitHub Actions → Railway/Render deploy    | Free tier friendly, Docker support.              |
@@ -68,9 +68,9 @@ datasource db { provider = "sqlite"; url = env("DATABASE_URL") }
 
 generator client { provider = "prisma-client-js" }
 
-model Board  { id String @id @default(cuid()) title String createdAt DateTime @default(now()) columns Column[] }
-model Column { id String @id @default(cuid()) title String order Int boardId String board Board @relation(fields:[boardId], references:[id]) cards Card[] }
-model Card   { id String @id @default(cuid()) content String order Int columnId String column Column @relation(fields:[columnId], references:[id]) }
+model Board  { id String @id @default(nanoid()) title String createdAt DateTime @default(now()) columns Column[] }
+model Column { id String @id @default(nanoid()) title String order Int boardId String board Board @relation(fields:[boardId], references:[id]) cards Card[] }
+model Card   { id String @id @default(nanoid()) content String order Int columnId String column Column @relation(fields:[columnId], references:[id]) }
 ```
 
 ---
@@ -81,8 +81,8 @@ model Card   { id String @id @default(cuid()) content String order Int columnId 
 | ------ | --------------------------------------------- | -------------------- | --------------- | -------------------------------------------------------------------------- |
 | POST   | `/boards`                                     | `{ title?: string }` | `{ id }`        | Creates board with optional custom title; default columns Todo/Doing/Done. |
 | GET    | `/boards/{id}`                                | –                    | Full board JSON | 404 if not found.                                                          |
-| PUT    | `/boards/{id}`                                | Entire board object  | 204 No Content  | Overwrite board state after drag‑drop/edit.                                |
-| PATCH  | `/boards/{id}/columns/{colId}/cards/{cardId}` | Partial card         | 204             | Optional fine‑grained update (phase 2).                                    |
+| PUT    | `/boards/{id}`                                | Entire board object  | 204 No Content  | Overwrite board state after drag‑drop/edit.                                |
+| PATCH  | `/boards/{id}/columns/{colId}/cards/{cardId}` | Partial card         | 204             | Optional fine‑grained update (phase 2).                                    |
 
 ### Validation & Error Shape
 
@@ -90,7 +90,15 @@ model Card   { id String @id @default(cuid()) content String order Int columnId 
 { "error": "Resource not found" }
 ```
 
-Fastify Zod schema validation rejects bad payloads with 400.
+Fastify Zod schema validation rejects bad payloads with 400.
+
+### Demo Simplifications
+
+For this demo app, we prioritize simplicity over production robustness:
+* **Conflict Resolution:** Last write wins (no optimistic locking).
+* **Error Handling:** Basic error messages; simple retry on failure.
+* **Mobile DnD:** Use dnd-kit defaults (no custom touch interactions).
+* **Rate Limiting:** Simple per-IP limits (no sophisticated detection).
 
 ---
 
@@ -99,8 +107,8 @@ Fastify Zod schema validation rejects bad payloads with 400.
 * **Routing:** React Router with lazy‑loaded `<BoardPage>`.
 * **State:** `useBoardStore` (Zustand) holds columns/cards; persists in memory.
 * **Data Fetch:** `api.ts` wrapper (Fetch API + Zod decode).
-* **Drag‑drop:** Dnd‑Kit’s `SortableContext` per column.
-* **Save Strategy:** Debounced `PUT /boards/{id}` 400 ms after any change.
+* **Drag‑drop:** Dnd‑Kit's `SortableContext` per column.
+* **Save Strategy:** Debounced `PUT /boards/{id}` 400 ms after any change.
 * **Styling:** Tailwind components; dark‑mode via `class="dark"` toggled by OS.
 
 ---
@@ -111,7 +119,7 @@ Fastify Zod schema validation rejects bad payloads with 400.
 * **Plugins:**
 
   * `@fastify/sensible` (error handling helpers).
-  * `@fastify/rate-limit` (e.g., 30 creates / min / IP).
+  * `@fastify/rate-limit` (e.g., 30 creates / min / IP).
   * `@fastify/helmet` (security headers).
 * **Services Layer:** `services/board.ts` wraps Prisma queries for testability.
 * **Migrations:** `prisma migrate dev` locally, `prisma migrate deploy` in CI.
@@ -137,11 +145,11 @@ Fastify Zod schema validation rejects bad payloads with 400.
 | Layer            | Tool                     | Command          |
 | ---------------- | ------------------------ | ---------------- |
 | Unit & component | Vitest + RTL             | `pnpm test:unit` |
-| API integration  | Vitest + Fastify .inject | `pnpm test:api`  |
+| API integration  | Vitest + Fastify .inject | `pnpm test:api`  |
 | E2E              | Playwright               | `pnpm test:e2e`  |
 | Type‑check       | `tsc --noEmit`           | `pnpm typecheck` |
 
-Coverage via Vitest V8; global threshold 80 %.
+Coverage via Vitest V8; global threshold 80 %.
 
 ### 10.4 Pre‑commit
 
@@ -179,11 +187,11 @@ Railway/Render auto‑deploys on Docker push.
 
 | Aspect         | Approach                                                        |
 | -------------- | --------------------------------------------------------------- |
-| **Container**  | Multi‑stage Dockerfile (node\:lts‑alpine).                      |
+| **Container**  | Multi‑stage Dockerfile (node:lts‑alpine).                      |
 | **Env vars**   | `DATABASE_URL` (sqlite path or postgres URL), `PORT`.           |
 | **Logs**       | Stdout → Railway logging dashboard.                             |
 | **Monitoring** | UptimeRobot ping; Sentry (optional) for front‑/back‑end errors. |
-| **Backups**    | Railway pg\_export or periodic SQLite file copy (cron).         |
+| **Backups**    | Railway pg_export or periodic SQLite file copy (cron).         |
 
 ### Dockerization & Fly.io Deployment
 
@@ -225,7 +233,7 @@ CMD ["node", "apps/api/dist/index.js"]
 *Notes*
 
 1. **Single container** serves both API (Fastify) and static front‑end assets from `apps/web/dist`.
-2. Uses Alpine image (\~80 MB final). Adjust memory/CPU in Fly.io plan accordingly.
+2. Uses Alpine image (\~80 MB final). Adjust memory/CPU in Fly.io plan accordingly.
 
 **fly.toml (minimal)**
 
@@ -281,7 +289,7 @@ CI can push via `flyctl deploy --remote-build` after tests pass.
 
 ---
 
-**Document version:** 1.0 • July 1 2025
+**Document version:** 1.0 • July 1 2025
 
 ---
 
