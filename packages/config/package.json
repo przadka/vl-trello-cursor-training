@@ -1,0 +1,13 @@
+{
+  "name": "@kanban/config",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./tsconfig": "./tsconfig.json",
+    "./eslint": "./eslint.config.js"
+  },
+  "files": [
+    "tsconfig.json",
+    "eslint.config.js"
+  ]
+} 
