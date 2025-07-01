@@ -2,8 +2,7 @@ import Fastify from 'fastify';
 
 const fastify = Fastify({
   logger: {
-    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-    prettyPrint: process.env.NODE_ENV !== 'production',
+    level: process.env['NODE_ENV'] === 'production' ? 'info' : 'debug',
   },
 });
 
@@ -28,8 +27,8 @@ fastify.get('/api/boards', async () => {
 // Start server
 const start = async () => {
   try {
-    const port = Number(process.env.PORT) || 3000;
-    const host = process.env.API_HOST || 'localhost';
+    const port = Number(process.env['PORT']) || 3000;
+    const host = process.env['API_HOST'] || 'localhost';
     
     await fastify.listen({ port, host });
     console.log(`🚀 API server running at http://${host}:${port}`);
