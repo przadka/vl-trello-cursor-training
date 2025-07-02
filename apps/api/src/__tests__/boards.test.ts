@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Fastify from 'fastify';
+import Fastify, { type FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { boardRoutes } from '../routes/boards';
 
@@ -12,7 +12,7 @@ const prisma = new PrismaClient({
 });
 
 describe('Board API', () => {
-  let app: any;
+  let app: FastifyInstance;
 
   beforeEach(async () => {
     // Set up fresh Fastify instance for each test
@@ -180,7 +180,7 @@ describe('Board API', () => {
       expect(response.statusCode).toBe(200);
       
       const body = JSON.parse(response.body);
-      body.data.columns.forEach((column: any) => {
+      body.data.columns.forEach((column: { cards: unknown[] }) => {
         expect(column).toHaveProperty('cards');
         expect(Array.isArray(column.cards)).toBe(true);
       });
@@ -287,7 +287,7 @@ describe('Board API', () => {
       const responses = await Promise.all(requests);
       
       // Some requests should be rate limited
-      const rateLimitedResponses = responses.filter(r => r.statusCode === 429);
+      const rateLimitedResponses = responses.filter((r: { statusCode: number }) => r.statusCode === 429);
       expect(rateLimitedResponses.length).toBeGreaterThan(0);
     });
   });

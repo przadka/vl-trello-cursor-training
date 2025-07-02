@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 // Mock IntersectionObserver
-// @ts-ignore - Mock for testing
+// @ts-expect-error - Mock for testing
 global.IntersectionObserver = vi.fn(() => ({
   observe: vi.fn(),
   disconnect: vi.fn(),

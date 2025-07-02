@@ -111,7 +111,7 @@ export class BoardService {
     };
   }
 
-  async updateBoard(id: string, data: BoardUpdateData): Promise<void> {
+  async updateBoard(_id: string, _data: BoardUpdateData): Promise<void> {
     // This will be implemented when we get to the corresponding test
     throw new Error('Not implemented yet - will be driven by tests');
   }

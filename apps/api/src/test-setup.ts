@@ -3,10 +3,11 @@ import { PrismaClient } from '@prisma/client';
 
 // Declare global test utilities type
 declare global {
+  // eslint-disable-next-line no-var
   var testUtils: {
     prisma: PrismaClient;
-    createTestBoard: (title?: string) => Promise<any>;
-    createTestCard: (columnId: string, content?: string, order?: number) => Promise<any>;
+    createTestBoard: (title?: string) => Promise<unknown>;
+    createTestCard: (columnId: string, content?: string, order?: number) => Promise<unknown>;
   };
 }
 
