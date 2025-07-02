@@ -1,4 +1,170 @@
----
+# Backend Development - Fastify + Prisma + TDD
+
+Guidelines for developing the Kanban board API with Fastify, Prisma ORM, and TDD principles.
+
+## 🏗️ **Architecture Layers**
+
+1. **Routes** ([apps/api/src/routes/](mdc:apps/api/src/routes/)) - HTTP endpoint definitions
+2. **Services** ([apps/api/src/services/](mdc:apps/api/src/services/)) - Business logic layer
+3. **Prisma** - Database ORM layer
+
+## 🎯 **Route Development Pattern**
+
+```typescript
+// routes/boards.ts - Follow this pattern
+import { FastifyPluginAsync } from 'fastify';
+import { PrismaClient } from '@prisma/client';
+import { boardService } from '../services/board.service';
+
+const boardRoutes: FastifyPluginAsync<{ prisma: PrismaClient }> = async (fastify, opts) => {
+  // Schema validation with Zod
+  const createBoardSchema = {
+    body: z.object({
+      title: z.string().optional(),
+    }),
+  };
+
+  fastify.post('/api/boards', { schema: createBoardSchema }, async (request, reply) => {
+    // Use service layer, not direct Prisma calls
+    const board = await boardService.createBoard(request.body);
+    return reply.code(201).send({ data: board });
+  });
+};
+```
+
+## 🧪 **Test-First Development**
+
+### API Route Tests ([apps/api/src/__tests__/boards.test.ts](mdc:apps/api/src/__tests__/boards.test.ts))
+```typescript
+import { build } from '../test-setup';
+
+describe('POST /api/boards', () => {
+  it('should create board with default title and columns', async () => {
+    const app = await build();
+    
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/boards',
+      payload: {}
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().data.id).toMatch(/^[A-Za-z0-9_-]{21}$/);
+    expect(response.json().data.title).toBe('My Kanban Board');
+  });
+});
+```
+
+### Service Layer Tests
+```typescript
+describe('BoardService.createBoard', () => {
+  it('should create default columns (Todo, In Progress, Done)', async () => {
+    const board = await boardService.createBoard({});
+    const fullBoard = await boardService.getBoardById(board.id);
+
+    expect(fullBoard.columns).toHaveLength(3);
+    expect(fullBoard.columns.map(c => c.title)).toEqual([
+      'Todo', 'In Progress', 'Done'
+    ]);
+  });
+});
+```
+
+## 🗄️ **Database Patterns**
+
+### Prisma Service Layer
+```typescript
+// services/board.service.ts - Business logic abstraction
+export const boardService = {
+  async createBoard(data: { title?: string }) {
+    return prisma.board.create({
+      data: {
+        title: data.title || 'My Kanban Board',
+        columns: {
+          create: [
+            { title: 'Todo', order: 0 },
+            { title: 'In Progress', order: 1 },
+            { title: 'Done', order: 2 },
+          ]
+        }
+      },
+      include: { columns: { include: { cards: true } } }
+    });
+  }
+};
+```
+
+### Migration Workflow
+```bash
+# Schema changes
+npx prisma migrate dev --name add_card_color
+npx prisma generate
+
+# Production deployment
+npx prisma migrate deploy
+```
+
+## 🔒 **Security & Validation**
+
+### Zod Schema Validation
+```typescript
+import { z } from 'zod';
+
+const updateBoardSchema = z.object({
+  title: z.string().min(1).max(100),
+  columns: z.array(z.object({
+    id: z.string(),
+    title: z.string().min(1).max(50),
+    order: z.number().int().min(0),
+    cards: z.array(cardSchema)
+  }))
+});
+```
+
+### Rate Limiting (in [apps/api/src/index.ts](mdc:apps/api/src/index.ts))
+```typescript
+await fastify.register(import('@fastify/rate-limit'), {
+  max: 100,
+  timeWindow: '1 minute',
+});
+```
+
+## 🚀 **Error Handling**
+
+```typescript
+// Use Fastify sensible for consistent errors
+fastify.post('/api/boards/:id', async (request, reply) => {
+  const board = await boardService.getBoardById(request.params.id);
+  if (!board) {
+    throw fastify.httpErrors.notFound('Board not found');
+  }
+});
+```
+
+## 📊 **API Response Format**
+
+```typescript
+// Success responses
+{ "data": { /* board object */ } }
+
+// Error responses
+{ "error": "Board not found" }
+
+// Validation errors (handled by Fastify)
+{ "statusCode": 400, "error": "Bad Request", "message": "..." }
+```
+
+## 🧪 **Testing Database Setup**
+
+Use [apps/api/src/test-setup.ts](mdc:apps/api/src/test-setup.ts) for test database:
+```typescript
+// Clean database between tests
+beforeEach(async () => {
+  await prisma.card.deleteMany();
+  await prisma.column.deleteMany();  
+  await prisma.board.deleteMany();
+});
+```
 description:
 globs:
 alwaysApply: false

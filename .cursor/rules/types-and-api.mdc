@@ -1,4 +1,301 @@
----
+# TypeScript & API Contracts
+
+Strict TypeScript configuration and API contract definitions for type safety across the Kanban board application.
+
+## 🔧 **TypeScript Configuration**
+
+### Strict Mode Settings ([tsconfig.base.json](mdc:tsconfig.base.json))
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}
+```
+
+## 📝 **Core Domain Types** ([packages/types/src/index.ts](mdc:packages/types/src/index.ts))
+
+### Database Entity Types
+```typescript
+// Domain entities matching Prisma schema
+export interface Board {
+  id: string;           // nanoid(21) - 128-bit entropy
+  title: string;
+  createdAt: Date;
+  columns: Column[];
+}
+
+export interface Column {
+  id: string;
+  title: string;
+  order: number;        // 0-based ordering
+  boardId: string;
+  cards: Card[];
+}
+
+export interface Card {
+  id: string;
+  content: string;
+  order: number;        // 0-based ordering within column
+  columnId: string;
+}
+```
+
+### API Request/Response Types
+```typescript
+// API contract types
+export interface CreateBoardRequest {
+  title?: string;       // Optional, defaults to "My Kanban Board"
+}
+
+export interface CreateBoardResponse {
+  data: {
+    id: string;
+    title: string;
+  };
+}
+
+export interface UpdateBoardRequest {
+  title: string;
+  columns: Column[];
+}
+
+export interface ApiError {
+  error: string;
+  statusCode?: number;
+}
+```
+
+## 🎯 **Zod Schema Validation**
+
+### Shared Validation Schemas
+```typescript
+import { z } from 'zod';
+
+// ID validation - nanoid format
+export const nanoidSchema = z.string().regex(/^[A-Za-z0-9_-]{21}$/);
+
+// Card schema
+export const cardSchema = z.object({
+  id: nanoidSchema,
+  content: z.string().min(1).max(500),
+  order: z.number().int().min(0),
+  columnId: nanoidSchema,
+});
+
+// Column schema  
+export const columnSchema = z.object({
+  id: nanoidSchema,
+  title: z.string().min(1).max(50),
+  order: z.number().int().min(0),
+  boardId: nanoidSchema,
+  cards: z.array(cardSchema),
+});
+
+// Board schema
+export const boardSchema = z.object({
+  id: nanoidSchema,
+  title: z.string().min(1).max(100),
+  createdAt: z.date(),
+  columns: z.array(columnSchema),
+});
+```
+
+### Runtime Type Validation
+```typescript
+// API route validation
+const createBoardSchema = {
+  body: z.object({
+    title: z.string().min(1).max(100).optional(),
+  }),
+};
+
+// Frontend form validation
+const updateCardSchema = z.object({
+  content: z.string().min(1, 'Card content is required').max(500),
+});
+```
+
+## 🏗️ **Type-Safe API Client**
+
+### API Function Types
+```typescript
+// Type-safe API client functions
+export interface BoardApi {
+  createBoard(data: CreateBoardRequest): Promise<CreateBoardResponse>;
+  getBoard(id: string): Promise<Board>;
+  updateBoard(id: string, data: UpdateBoardRequest): Promise<void>;
+}
+
+// Implementation with proper error handling
+export const boardApi: BoardApi = {
+  async createBoard(data) {
+    const response = await fetch('/api/boards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      const error: ApiError = await response.json();
+      throw new Error(error.error);
+    }
+    
+    return response.json();
+  },
+};
+```
+
+### Generic API Response Wrapper
+```typescript
+// Consistent API response format
+export interface ApiResponse<T> {
+  data: T;
+  meta?: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+export interface ApiErrorResponse {
+  error: string;
+  code?: string;
+  details?: Record<string, string[]>; // Validation errors
+}
+```
+
+## 🔄 **State Management Types**
+
+### Zustand Store Types
+```typescript
+// Board store state interface
+export interface BoardState {
+  board: Board | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+// Board store actions interface
+export interface BoardActions {
+  loadBoard: (id: string) => Promise<void>;
+  addCard: (columnId: string, content: string) => void;
+  updateCard: (cardId: string, content: string) => void;
+  moveCard: (cardId: string, targetColumnId: string, targetIndex: number) => void;
+  deleteCard: (cardId: string) => void;
+  addColumn: (title: string) => void;
+  updateColumn: (columnId: string, title: string) => void;
+  deleteColumn: (columnId: string) => void;
+}
+
+// Combined store type
+export type BoardStore = BoardState & BoardActions;
+```
+
+## 🧪 **Testing Types**
+
+### Mock Data Types
+```typescript
+// Test fixture types
+export interface MockBoard extends Omit<Board, 'createdAt'> {
+  createdAt: string; // Serialized date for API mocks
+}
+
+export interface TestFixtures {
+  emptyBoard: MockBoard;
+  boardWithCards: MockBoard;
+  boardWithMultipleColumns: MockBoard;
+}
+```
+
+### Test Utility Types
+```typescript
+// Custom render options for React Testing Library
+export interface RenderOptions {
+  initialBoardState?: Partial<BoardState>;
+  routerEntries?: string[];
+}
+
+// API mock types
+export interface ApiMockHandlers {
+  createBoard: jest.MockedFunction<BoardApi['createBoard']>;
+  getBoard: jest.MockedFunction<BoardApi['getBoard']>;
+  updateBoard: jest.MockedFunction<BoardApi['updateBoard']>;
+}
+```
+
+## 📋 **Component Prop Types**
+
+### Strict Component Interfaces
+```typescript
+// Board component props
+export interface BoardProps {
+  boardId: string;
+  className?: string;
+}
+
+// Column component props
+export interface ColumnProps {
+  column: Column;
+  onAddCard: (content: string) => void;
+  onUpdateCard: (cardId: string, content: string) => void;
+  onDeleteCard: (cardId: string) => void;
+}
+
+// Card component props
+export interface CardProps {
+  card: Card;
+  onUpdate: (content: string) => void;
+  onDelete: () => void;
+  isDragging?: boolean;
+}
+```
+
+## ⚡ **Utility Types**
+
+### Common Utility Types
+```typescript
+// Extract ID type from any entity
+export type EntityId<T extends { id: string }> = T['id'];
+
+// Make specific properties optional
+export type CreateEntity<T> = Omit<T, 'id' | 'createdAt'>;
+
+// Update payload type (excluding server-managed fields)
+export type UpdateEntity<T> = Partial<Omit<T, 'id' | 'createdAt' | 'updatedAt'>>;
+
+// API endpoint parameter types
+export type BoardParams = { id: string };
+export type CardParams = { boardId: string; columnId: string; cardId: string };
+```
+
+## 🚨 **Error Type Patterns**
+
+### Discriminated Union for Errors
+```typescript
+export type ApiError = 
+  | { type: 'validation'; field: string; message: string }
+  | { type: 'not_found'; resource: string; id: string }
+  | { type: 'network'; message: string }
+  | { type: 'server'; message: string; code?: number };
+
+// Type-safe error handling
+const handleError = (error: ApiError) => {
+  switch (error.type) {
+    case 'validation':
+      return `${error.field}: ${error.message}`;
+    case 'not_found':
+      return `${error.resource} with ID ${error.id} not found`;
+    case 'network':
+      return `Network error: ${error.message}`;
+    case 'server':
+      return `Server error: ${error.message}`;
+  }
+};
+```
 description:
 globs:
 alwaysApply: false

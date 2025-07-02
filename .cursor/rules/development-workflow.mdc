@@ -1,4 +1,103 @@
----
+# Development Workflow & TDD Principles
+
+This project follows **Test-Driven Development (TDD)** with strict quality gates.
+
+## 🔴🟢🔵 **TDD Red-Green-Refactor Cycle**
+
+1. **🔴 RED**: Write failing test that defines desired behavior
+2. **🟢 GREEN**: Write minimal code to make test pass
+3. **🔵 REFACTOR**: Improve code while keeping tests green
+
+## 📋 **Development Process**
+
+### Before Starting Any Feature
+1. **Read the specs**: Check [technical_design.md](mdc:technical_design.md) for requirements
+2. **Review test patterns**: See [TDD_TEST_SUITE.md](mdc:TDD_TEST_SUITE.md) for examples
+3. **Write tests FIRST**: Follow TDD - tests drive implementation
+
+### Test Writing Order
+1. **E2E test** (defines user story)
+2. **API test** (defines contract)
+3. **Service test** (defines business logic)
+4. **Component test** (defines UI behavior)
+
+### Quality Gates (Required)
+```bash
+# All must pass before PR
+pnpm lint        # ESLint + TypeScript checking
+pnpm test        # All test suites
+pnpm typecheck   # Strict TypeScript validation
+pnpm build       # Production build verification
+```
+
+## 🎯 **Test Naming Conventions**
+
+```typescript
+// ✅ GOOD: Behavior-focused, clear intent
+describe('Board creation', () => {
+  it('should create board with default columns (Todo, In Progress, Done)', () => {})
+  it('should generate unique nanoid for board URL', () => {})
+})
+
+// ❌ BAD: Implementation-focused
+describe('BoardService', () => {
+  it('should call prisma.board.create', () => {})
+})
+```
+
+## 📁 **File Organization Pattern**
+
+```
+src/
+├── components/
+│   ├── Board.tsx
+│   └── __tests__/
+│       └── Board.test.tsx
+├── services/
+│   ├── board.service.ts
+│   └── __tests__/
+│       └── board.service.test.ts
+└── routes/
+    ├── boards.ts
+    └── __tests__/
+        └── boards.test.ts
+```
+
+## 🔍 **Code Review Checklist**
+
+- [ ] Tests written BEFORE implementation
+- [ ] All tests follow Arrange-Act-Assert pattern
+- [ ] Test names describe behavior, not implementation
+- [ ] TypeScript strict mode compliance
+- [ ] No ESLint warnings
+- [ ] Prisma schema changes include migrations
+- [ ] API changes documented in technical_design.md
+
+## 🚀 **Git Workflow**
+
+```bash
+# Feature development
+git checkout -b feature/card-drag-drop
+# Write tests first, then implement
+git add . && git commit -m "test: add drag-drop card tests"
+git commit -m "feat: implement card drag-drop functionality"
+
+# Pre-push checks
+pnpm lint && pnpm test && pnpm build
+```
+
+## 🛡️ **Pre-commit Hooks (Husky)**
+
+- **lint-staged**: Auto-fix ESLint + Prettier on staged files
+- **type-check**: Validate TypeScript on modified files
+- **test**: Run tests for changed components
+
+## 📊 **Coverage Requirements**
+
+- **Unit tests**: 80% minimum coverage
+- **API tests**: All endpoints tested
+- **E2E tests**: Critical user journeys covered
+- **Integration**: Database operations tested
 description:
 globs:
 alwaysApply: false

@@ -1,4 +1,251 @@
----
+# Frontend Development - React + Tailwind + TDD
+
+Guidelines for developing the Kanban board frontend with React, Tailwind CSS, Zustand, and component testing.
+
+## 🎨 **Component Architecture**
+
+### File Structure Pattern
+```
+src/
+├── components/
+│   ├── Board.tsx          # Main board container
+│   ├── Column.tsx         # Kanban column
+│   ├── Card.tsx           # Individual card
+│   └── ui/                # Reusable UI components
+├── hooks/                 # Custom React hooks
+├── stores/                # Zustand state management
+└── api/                   # API client functions
+```
+
+## 🧪 **Test-First Component Development**
+
+### Component Test Pattern ([apps/web/src/__tests__/components/](mdc:apps/web/src/__tests__/components/))
+```typescript
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Board } from '../Board';
+
+describe('Board Component', () => {
+  it('should allow adding new card to column', async () => {
+    // Arrange
+    const mockStore = { /* mock Zustand store */ };
+    const user = userEvent.setup();
+
+    // Act
+    render(<Board boardId="test-id" />);
+    const addButton = screen.getAllByRole('button', { name: /add card/i })[0];
+    await user.click(addButton);
+
+    // Assert
+    expect(mockStore.addCard).toHaveBeenCalledWith('col-1');
+  });
+});
+```
+
+### Test Utilities Setup
+```typescript
+// test-setup.ts - Custom render with providers
+export const renderWithProviders = (ui: React.ReactElement) => {
+  return render(
+    <BrowserRouter>
+      <QueryClientProvider client={testQueryClient}>
+        {ui}
+      </QueryClientProvider>
+    </BrowserRouter>
+  );
+};
+```
+
+## 🏪 **State Management with Zustand**
+
+### Board Store Pattern
+```typescript
+// stores/useBoardStore.ts
+interface BoardState {
+  board: Board | null;
+  isLoading: boolean;
+  addCard: (columnId: string) => void;
+  moveCard: (cardId: string, targetColumnId: string, targetIndex: number) => void;
+  updateCard: (cardId: string, content: string) => void;
+}
+
+export const useBoardStore = create<BoardState>((set, get) => ({
+  board: null,
+  isLoading: false,
+  
+  addCard: (columnId) => set((state) => ({
+    board: {
+      ...state.board!,
+      columns: state.board!.columns.map(col =>
+        col.id === columnId
+          ? { ...col, cards: [...col.cards, newCard] }
+          : col
+      )
+    }
+  })),
+}));
+```
+
+## 🎨 **Tailwind CSS Patterns**
+
+### Component Styling Conventions
+```typescript
+// Consistent class ordering: layout → styling → responsive
+const Card = ({ content }: CardProps) => (
+  <div className="p-3 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+    <p className="text-sm text-gray-800">{content}</p>
+  </div>
+);
+
+// Extract repeated patterns into className variables
+const columnClasses = "flex-1 bg-gray-50 rounded-lg p-4 min-h-[200px]";
+const cardClasses = "p-3 bg-white rounded border shadow-sm hover:shadow-md";
+```
+
+### Responsive Design
+```typescript
+// Mobile-first approach
+<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+  {/* Columns stack on mobile, grid on desktop */}
+</div>
+```
+
+## 🐭 **Drag & Drop with dnd-kit**
+
+### Setup Pattern
+```typescript
+import { DndContext, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+
+const Board = () => {
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    // Update Zustand store
+    useBoardStore.getState().moveCard(active.id, over.id, newIndex);
+  };
+
+  return (
+    <DndContext onDragEnd={handleDragEnd}>
+      {columns.map(column => (
+        <SortableContext 
+          key={column.id}
+          items={column.cards} 
+          strategy={verticalListSortingStrategy}
+        >
+          <Column column={column} />
+        </SortableContext>
+      ))}
+    </DndContext>
+  );
+};
+```
+
+## 🌐 **API Integration**
+
+### API Client Pattern
+```typescript
+// api/boards.ts - Centralized API functions
+export const boardApi = {
+  async createBoard(data: { title?: string }) {
+    const response = await fetch('/api/boards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create board');
+    return response.json();
+  },
+
+  async updateBoard(id: string, board: Board) {
+    // Debounced updates to avoid excessive API calls
+    return debouncedUpdate(id, board);
+  }
+};
+```
+
+### Error Handling
+```typescript
+const Board = ({ boardId }: BoardProps) => {
+  const [error, setError] = useState<string | null>(null);
+  
+  const handleError = (err: Error) => {
+    setError(err.message);
+    // Optional: Toast notification
+  };
+
+  if (error) {
+    return <ErrorBoundary error={error} onRetry={() => setError(null)} />;
+  }
+};
+```
+
+## 🎯 **React Patterns**
+
+### Custom Hooks
+```typescript
+// hooks/useBoard.ts
+export const useBoard = (boardId: string) => {
+  const { board, isLoading } = useBoardStore();
+  
+  useEffect(() => {
+    if (boardId) {
+      useBoardStore.getState().loadBoard(boardId);
+    }
+  }, [boardId]);
+
+  return { board, isLoading };
+};
+```
+
+### Performance Optimization
+```typescript
+// Memoize expensive operations
+const memoizedColumns = useMemo(() => 
+  board?.columns.sort((a, b) => a.order - b.order) || [], 
+  [board?.columns]
+);
+
+// Prevent unnecessary re-renders
+const Card = memo(({ card }: CardProps) => (
+  <div>{card.content}</div>
+));
+```
+
+## ♿ **Accessibility**
+
+```typescript
+// Keyboard navigation for drag-drop
+<div
+  role="button"
+  tabIndex={0}
+  aria-label={`Move card: ${card.content}`}
+  onKeyDown={handleKeyDown}
+>
+
+// Screen reader announcements
+<div aria-live="polite" aria-atomic="true">
+  {dragStatus && <span className="sr-only">{dragStatus}</span>}
+</div>
+```
+
+## 🚀 **Build & Development**
+
+### Vite Configuration ([apps/web/vite.config.ts](mdc:apps/web/vite.config.ts))
+- Fast HMR with React plugin
+- Proxy API calls to backend during development
+- TypeScript strict mode enabled
+
+### Development Workflow
+```bash
+# Start with API proxy
+pnpm dev          # Both API and web servers
+
+# Component development  
+pnpm test:unit    # Watch mode for TDD
+
+# Type checking
+pnpm typecheck    # Validate TypeScript
+```
 description:
 globs:
 alwaysApply: false

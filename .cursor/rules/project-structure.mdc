@@ -1,4 +1,71 @@
----
+# Kanban Board - Project Structure Guide
+
+This is a **monorepo** using **pnpm workspaces** for a Kanban board application with TDD principles.
+
+## 📁 **Core Architecture**
+
+- [package.json](mdc:package.json) - Root workspace with shared scripts and dependencies
+- [pnpm-workspace.yaml](mdc:pnpm-workspace.yaml) - Defines workspace structure
+- [prisma/schema.prisma](mdc:prisma/schema.prisma) - Database schema (Board → Column → Card)
+- [technical_design.md](mdc:technical_design.md) - Complete technical specification
+- [TDD_TEST_SUITE.md](mdc:TDD_TEST_SUITE.md) - TDD methodology and test patterns
+
+## 🎯 **Apps Structure**
+
+### API (`apps/api/`)
+- Entry: [apps/api/src/index.ts](mdc:apps/api/src/index.ts) - Fastify server setup
+- Routes: [apps/api/src/routes/boards.ts](mdc:apps/api/src/routes/boards.ts) - REST endpoints
+- Services: [apps/api/src/services/board.service.ts](mdc:apps/api/src/services/board.service.ts) - Business logic layer
+- Config: [apps/api/tsconfig.json](mdc:apps/api/tsconfig.json), [apps/api/tsup.config.ts](mdc:apps/api/tsup.config.ts)
+
+### Web (`apps/web/`)
+- Entry: [apps/web/src/main.tsx](mdc:apps/web/src/main.tsx) - React app entry
+- App: [apps/web/src/App.tsx](mdc:apps/web/src/App.tsx) - Main routing and layout
+- Config: [apps/web/vite.config.ts](mdc:apps/web/vite.config.ts), [apps/web/tailwind.config.js](mdc:apps/web/tailwind.config.js)
+
+## 📦 **Shared Packages**
+
+- `packages/config/` - Shared build configurations
+- `packages/types/` - Shared TypeScript types between API and web
+
+## 🧪 **Testing Structure**
+
+- API tests: `apps/api/src/__tests__/` - Fastify injection tests
+- Component tests: `apps/web/src/__tests__/` - React Testing Library
+- E2E tests: `e2e/` - Playwright full-workflow tests
+
+## 🔧 **Key Technologies**
+
+- **Backend:** Fastify + Prisma + SQLite + Zod validation
+- **Frontend:** React 18 + Vite + Tailwind + Zustand + dnd-kit
+- **Testing:** Vitest + RTL + Playwright
+- **Quality:** ESLint + Prettier + TypeScript strict mode
+
+## 🎨 **File Naming Conventions**
+
+- Components: `PascalCase.tsx` (e.g., `Board.tsx`)
+- Services: `kebab-case.service.ts` (e.g., `board.service.ts`)
+- Tests: Same name as file + `.test.ts/tsx`
+- Config: `kebab-case.config.(js|ts)`
+
+## 📋 **Development Commands**
+
+```bash
+# Start development servers
+pnpm dev
+
+# Run all tests (unit + API + e2e)
+pnpm test
+
+# Individual test suites
+pnpm test:unit    # Frontend components
+pnpm test:api     # Backend integration
+pnpm test:e2e     # Playwright workflows
+
+# Database operations
+pnpm db:setup     # Run migrations + generate client
+pnpm db:migrate   # Deploy migrations
+```
 description:
 globs:
 alwaysApply: false
