@@ -1,10 +1,15 @@
 import Fastify from 'fastify';
+import { PrismaClient } from '@prisma/client';
+import { boardRoutes } from './routes/boards';
 
 const fastify = Fastify({
   logger: {
     level: process.env['NODE_ENV'] === 'production' ? 'info' : 'debug',
   },
 });
+
+// Initialize database
+const prisma = new PrismaClient();
 
 // Register plugins
 await fastify.register(import('@fastify/sensible'));
@@ -19,10 +24,8 @@ fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
 
-// API routes will be registered here
-fastify.get('/api/boards', async () => {
-  return { message: 'Boards API - Coming soon!' };
-});
+// Register board routes
+await fastify.register(boardRoutes, { prisma });
 
 // Start server
 const start = async () => {
@@ -37,5 +40,11 @@ const start = async () => {
     process.exit(1);
   }
 };
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
 
 start(); 

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Fastify from 'fastify';
 import { PrismaClient } from '@prisma/client';
+import { boardRoutes } from '../routes/boards';
 
 const prisma = new PrismaClient({
   datasources: {
@@ -20,6 +21,9 @@ describe('Board API', () => {
     // Register plugins (same as main app)
     await app.register(import('@fastify/sensible'));
     await app.register(import('@fastify/helmet'));
+    
+    // Register board routes with test database
+    await app.register(boardRoutes, { prisma });
     
     // Clean database for each test
     await prisma.card.deleteMany();

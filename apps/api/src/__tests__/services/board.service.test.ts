@@ -1,58 +1,6 @@
-// @ts-nocheck - This is a TDD demonstration file focusing on test structure
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
-
-// Types for the service layer - will drive implementation
-interface CreateBoardData {
-  title?: string;
-}
-
-interface BoardUpdateData {
-  title: string;
-  columns: Array<{
-    id: string;
-    title: string;
-    order: number;
-    cards: Array<{
-      id: string;
-      content: string;
-      order: number;
-    }>;
-  }>;
-}
-
-interface BoardData {
-  id: string;
-  title: string;
-  createdAt: Date;
-  columns: Array<{
-    id: string;
-    title: string;
-    order: number;
-    cards: Array<{
-      id: string;
-      content: string;
-      order: number;
-    }>;
-  }>;
-}
-
-// Mock BoardService for now - TDD will drive real implementation
-class BoardService {
-  constructor(private prisma: PrismaClient) {}
-
-  async createBoard(data: CreateBoardData): Promise<{ id: string; title: string; createdAt: Date }> {
-    throw new Error('Not implemented - TDD will drive this');
-  }
-
-  async getBoardById(id: string): Promise<BoardData | null> {
-    throw new Error('Not implemented - TDD will drive this');
-  }
-
-  async updateBoard(id: string, data: BoardUpdateData): Promise<void> {
-    throw new Error('Not implemented - TDD will drive this');
-  }
-}
+import { BoardService } from '../../services/board.service';
 
 const prisma = new PrismaClient({
   datasources: {
