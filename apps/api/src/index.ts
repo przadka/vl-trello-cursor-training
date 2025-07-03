@@ -12,6 +12,10 @@ const fastify = Fastify({
 const prisma = new PrismaClient();
 
 // Register plugins
+await fastify.register(import('@fastify/cors'), {
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
+  credentials: true,
+});
 await fastify.register(import('@fastify/sensible'));
 await fastify.register(import('@fastify/helmet'));
 await fastify.register(import('@fastify/rate-limit'), {

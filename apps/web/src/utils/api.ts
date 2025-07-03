@@ -44,8 +44,9 @@ class ApiClient {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return { data };
+      const responseData = await response.json();
+      // Backend returns { data: actualData }, so we extract it
+      return { data: responseData.data };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return { error: errorMessage };

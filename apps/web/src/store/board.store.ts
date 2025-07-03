@@ -30,6 +30,7 @@ interface BoardState {
 
 interface BoardActions {
   loadBoard: (boardId: string) => Promise<void>;
+  createBoard: () => Promise<string | null>; // Returns board ID for navigation
   updateBoard: (boardId: string, updates: Partial<Board>) => Promise<void>;
   moveCard: (cardId: string, sourceColumnId: string, targetColumnId: string, targetOrder: number) => Promise<void>;
   addCard: (columnId: string, content?: string) => Promise<void>;
@@ -65,6 +66,29 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load board';
       set({ error: errorMessage, loading: false });
+    }
+  },
+
+  createBoard: async () => {
+    try {
+      set({ loading: true, error: null });
+      
+      const result = await apiClient.createBoard('New Board'); // Will use board ID as title
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // The API returns just basic board info { id, title, createdAt }
+      // We need the id for navigation
+      const newBoardData = result.data;
+      set({ loading: false });
+      
+      return newBoardData?.id || null;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create board';
+      set({ error: errorMessage, loading: false });
+      return null;
     }
   },
 

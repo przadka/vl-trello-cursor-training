@@ -4,11 +4,28 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Board } from '../../components/Board';
 
-// Mock the board store
+// Define types for test mocks
+interface MockBoard {
+  id: string;
+  title: string;
+  createdAt: Date;
+  columns: Array<{
+    id: string;
+    title: string;
+    order: number;
+    cards: Array<{
+      id: string;
+      content: string;
+      order: number;
+    }>;
+  }>;
+}
+
+// Mock the board store - using proper typing for tests
 const mockBoardStore = {
-  board: null,
+  board: null as MockBoard | null,
   loading: false,
-  error: null,
+  error: null as string | null,
   loadBoard: vi.fn(),
   updateBoard: vi.fn(),
   moveCard: vi.fn(),
@@ -188,7 +205,9 @@ describe('Board Component', () => {
       render(<Board boardId="test-id" />);
       
       const addButton = screen.getAllByRole('button', { name: /add card/i })[0];
-      await user.click(addButton);
+      if (addButton) {
+        await user.click(addButton);
+      }
 
       // Assert
       expect(mockBoardStore.addCard).toHaveBeenCalledWith('col-1');
